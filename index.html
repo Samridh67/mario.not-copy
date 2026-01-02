@@ -1,4 +1,4 @@
-
+    
   <!DOCTYPE html>
 <html>
 <head>
@@ -103,54 +103,4 @@ function gameLoop() {
   player.vy += gravity;
   player.y += player.vy;
   if (player.y > 420) {
-    player.y = 420;
-    player.vy = 0;
-  }
-
-  // Plant obstacle
-  plant.x -= speed;
-  if (plant.x < -plant.w) {
-    plant.x = canvas.width + Math.random() * 200;
-    score++;
-    speed += 0.15;
-    document.getElementById("score").innerText = score;
-
-    if (score > highScore) {
-      highScore = score;
-      localStorage.setItem("highScore", highScore);
-      document.getElementById("high").innerText = highScore;
-    }
-  }
-
-  // Collision
-  if (
-    player.x < plant.x + plant.w &&
-    player.x + player.w > plant.x &&
-    player.y < plant.y + plant.h &&
-    player.y + player.h > plant.y
-  ) {
-    resetGame();
-  }
-
-  // Draw player (character)
-  ctx.fillStyle = "#ff7043";
-  ctx.fillRect(player.x, player.y, player.w, player.h); // body
-  ctx.fillStyle = "#ffccbc";
-  ctx.fillRect(player.x + 6, player.y - 12, 18, 12); // head
-
-  // Draw plant
-  ctx.fillStyle = "#2e7d32";
-  ctx.fillRect(plant.x, plant.y, plant.w, plant.h);
-  ctx.fillStyle = "#1b5e20";
-  ctx.fillRect(plant.x + 5, plant.y - 10, 5, 10);
-  ctx.fillRect(plant.x + 20, plant.y - 10, 5, 10);
-
-  requestAnimationFrame(gameLoop);
-}
-
-resetGame();
-gameLoop();
-</script>
-
-</body>
-</html>
+    
