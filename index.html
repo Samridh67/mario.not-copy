@@ -1,51 +1,49 @@
-    
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
-  <title>Endless Runner</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #87ceeb;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .top-bar {
-      width: 360px;
-      display: flex;
-      justify-content: space-between;
-      padding: 10px;
-    }
-
-    button {
-      padding: 8px 14px;
-      border: none;
-      border-radius: 8px;
-      background: #1976d2;
-      color: white;
-      font-size: 15px;
-    }
-
-    canvas {
-      background: linear-gradient(#c8e6c9, #ffffff);
-      border-radius: 12px;
-    }
-  </style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Infinite Runner</title>
+<style>
+body {
+  margin:0;
+  background: #87ceeb;
+  font-family: Arial, sans-serif;
+  text-align:center;
+}
+#ui {
+  display:flex;
+  justify-content:space-between;
+  padding:10px;
+  max-width:400px;
+  margin:auto;
+}
+button {
+  padding:8px 14px;
+  font-size:15px;
+  border:none;
+  border-radius:8px;
+  background:#1976d2;
+  color:white;
+}
+canvas {
+  display:block;
+  margin:auto;
+  background: linear-gradient(#c8e6c9,#ffffff);
+  border-radius:12px;
+}
+</style>
 </head>
-
 <body>
 
-<div class="top-bar">
+<div id="ui">
   <div>
     Score: <span id="score">0</span><br>
     High: <span id="high">0</span>
   </div>
-  <button onclick="resetGame()">🔄 Reset</button>
+  <div>
+    <button onclick="pauseGame()">⏸ Pause</button>
+    <button onclick="resetGame()">🔄 Reset</button>
+  </div>
 </div>
 
 <canvas id="game" width="360" height="520"></canvas>
@@ -54,53 +52,110 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-let player, plant, score, speed, gravity;
+// Game variables
+let player, obstacles, speed, score, paused, gameOver;
 let highScore = localStorage.getItem("highScore") || 0;
 document.getElementById("high").innerText = highScore;
 
-function resetGame() {
-  player = {
-    x: 50,
-    y: 420,
-    w: 30,
-    h: 50,
-    vy: 0
-  };
+const jumpSound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-quick-jump-arcade-game-239.mp3");
+const gameOverSound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-player-losing-or-failing-2042.mp3");
 
-  plant = {
-    x: 360,
-    y: 440,
-    w: 30,
-    h: 40
-  };
-
-  score = 0;
+// Initialize game
+function start() {
+  player = { x: 60, y: 420, vy: 0 };
+  obstacles = [{ x: 400 }];
   speed = 4;
-  gravity = 0.9;
+  score = 0;
+  paused = false;
+  gameOver = false;
   document.getElementById("score").innerText = score;
 }
 
+// Pause & Reset
+function pauseGame() { paused = !paused; }
+function resetGame() { start(); }
+
+// Jump
 function jump() {
-  if (player.y >= 420) {
-    player.vy = -15;
+  if(!paused && !gameOver && player.y>=420){
+    player.vy=-15;
+    jumpSound.play();
   }
 }
 
+// Controls
+document.addEventListener("keydown", e=>{if(e.code==="Space") jump();});
 document.addEventListener("click", jump);
 document.addEventListener("touchstart", jump);
-document.addEventListener("keydown", e => {
-  if (e.code === "Space") jump();
-});
 
-function gameLoop() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+// Game loop
+function update(){
+  if(!paused){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  // Ground
-  ctx.fillStyle = "#5d4037";
-  ctx.fillRect(0, 470, canvas.width, 6);
+    // Ground
+    ctx.fillStyle="#5d4037";
+    ctx.fillRect(0,460,canvas.width,8);
 
-  // Player physics
-  player.vy += gravity;
-  player.y += player.vy;
-  if (player.y > 420) {
-    
+    // Player (body)
+    ctx.fillStyle="#ff7043";
+    ctx.fillRect(player.x,player.y,24,32);
+    // Player head
+    ctx.fillStyle="#ffccbc";
+    ctx.beginPath();
+    ctx.arc(player.x+12,player.y-6,8,0,Math.PI*2);
+    ctx.fill();
+
+    // Physics
+    player.vy+=1;
+    player.y+=player.vy;
+    if(player.y>420){player.y=420;player.vy=0;}
+
+    // Obstacles
+    obstacles.forEach(o=>{
+      o.x-=speed;
+      ctx.fillStyle="#2e7d32";
+      ctx.fillRect(o.x,440,20,40);
+
+      if(o.x<-20){
+        o.x=canvas.width + Math.random()*200;
+        score++;
+        speed+=0.2;
+        document.getElementById("score").innerText=score;
+        if(score>highScore){
+          highScore=score;
+          localStorage.setItem("highScore",highScore);
+          document.getElementById("high").innerText=highScore;
+        }
+      }
+
+      // Collision
+      if(player.x<o.x+20 && player.x+24>o.x && player.y+32>440){
+        gameOver=true;
+        gameOverSound.play();
+        paused=true;
+      }
+    });
+
+    // Game Over text
+    if(gameOver){
+      ctx.fillStyle="rgba(0,0,0,0.6)";
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.fillStyle="white";
+      ctx.font="30px Arial";
+      ctx.fillText("GAME OVER",80,240);
+      ctx.font="16px Arial";
+      ctx.fillText("Press Reset",120,270);
+    }
+  }
+
+  requestAnimationFrame(update);
+}
+
+// Start
+start();
+update();
+</script>
+
+</body>
+</html>
