@@ -1,41 +1,39 @@
-<!DOCTYPE html>
+
+  <!DOCTYPE html>
 <html>
 <head>
-  <title>Infinite Runner</title>
+  <title>Endless Runner</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
     body {
       margin: 0;
-      background: linear-gradient(#87ceeb, #e0f7fa);
       font-family: Arial, sans-serif;
+      background: #87ceeb;
       display: flex;
       flex-direction: column;
       align-items: center;
     }
 
-    canvas {
-      background: linear-gradient(#c8e6c9, #ffffff);
-      border-radius: 12px;
-      margin-top: 10px;
-    }
-
     .top-bar {
-      width: 100%;
-      max-width: 400px;
+      width: 360px;
       display: flex;
       justify-content: space-between;
-      align-items: center;
       padding: 10px;
     }
 
     button {
       padding: 8px 14px;
-      font-size: 16px;
       border: none;
       border-radius: 8px;
       background: #1976d2;
       color: white;
+      font-size: 15px;
+    }
+
+    canvas {
+      background: linear-gradient(#c8e6c9, #ffffff);
+      border-radius: 12px;
     }
   </style>
 </head>
@@ -45,9 +43,9 @@
 <div class="top-bar">
   <div>
     Score: <span id="score">0</span><br>
-    High: <span id="highScore">0</span>
+    High: <span id="high">0</span>
   </div>
-  <button onclick="togglePause()">⏸ Pause</button>
+  <button onclick="resetGame()">🔄 Reset</button>
 </div>
 
 <canvas id="game" width="360" height="520"></canvas>
@@ -56,15 +54,26 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-let player, obstacle, score, speed, gravity;
-let paused = false;
-
+let player, plant, score, speed, gravity;
 let highScore = localStorage.getItem("highScore") || 0;
-document.getElementById("highScore").innerText = highScore;
+document.getElementById("high").innerText = highScore;
 
-function startGame() {
-  player = { x: 50, y: 430, w: 32, h: 32, vy: 0 };
-  obstacle = { x: 360, y: 445, w: 32, h: 32 };
+function resetGame() {
+  player = {
+    x: 50,
+    y: 420,
+    w: 30,
+    h: 50,
+    vy: 0
+  };
+
+  plant = {
+    x: 360,
+    y: 440,
+    w: 30,
+    h: 40
+  };
+
   score = 0;
   speed = 4;
   gravity = 0.9;
@@ -72,82 +81,76 @@ function startGame() {
 }
 
 function jump() {
-  if (!paused && player.y >= 430) {
+  if (player.y >= 420) {
     player.vy = -15;
   }
 }
 
-function togglePause() {
-  paused = !paused;
-}
-
+document.addEventListener("click", jump);
+document.addEventListener("touchstart", jump);
 document.addEventListener("keydown", e => {
   if (e.code === "Space") jump();
 });
-document.addEventListener("touchstart", jump);
-document.addEventListener("click", jump);
 
-function update() {
-  if (!paused) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+function gameLoop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Player physics
-    player.vy += gravity;
-    player.y += player.vy;
-    if (player.y > 430) {
-      player.y = 430;
-      player.vy = 0;
-    }
+  // Ground
+  ctx.fillStyle = "#5d4037";
+  ctx.fillRect(0, 470, canvas.width, 6);
 
-    // Obstacle
-    obstacle.x -= speed;
-    if (obstacle.x < -obstacle.w) {
-      obstacle.x = canvas.width + Math.random() * 200;
-      score++;
-      speed += 0.15;
-      document.getElementById("score").innerText = score;
-
-      if (score > highScore) {
-        highScore = score;
-        localStorage.setItem("highScore", highScore);
-        document.getElementById("highScore").innerText = highScore;
-      }
-    }
-
-    // Collision
-    if (
-      player.x < obstacle.x + obstacle.w &&
-      player.x + player.w > obstacle.x &&
-      player.y < obstacle.y + obstacle.h &&
-      player.y + player.h > obstacle.y
-    ) {
-      startGame();
-    }
-
-    // Player (rounded character)
-    ctx.fillStyle = "#ff5252";
-    ctx.beginPath();
-    ctx.roundRect(player.x, player.y, player.w, player.h, 8);
-    ctx.fill();
-
-    // Obstacle
-    ctx.fillStyle = "#2e7d32";
-    ctx.beginPath();
-    ctx.roundRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h, 6);
-    ctx.fill();
-
-    // Ground
-    ctx.fillStyle = "#5d4037";
-    ctx.fillRect(0, 462, canvas.width, 6);
+  // Player physics
+  player.vy += gravity;
+  player.y += player.vy;
+  if (player.y > 420) {
+    player.y = 420;
+    player.vy = 0;
   }
 
-  requestAnimationFrame(update);
+  // Plant obstacle
+  plant.x -= speed;
+  if (plant.x < -plant.w) {
+    plant.x = canvas.width + Math.random() * 200;
+    score++;
+    speed += 0.15;
+    document.getElementById("score").innerText = score;
+
+    if (score > highScore) {
+      highScore = score;
+      localStorage.setItem("highScore", highScore);
+      document.getElementById("high").innerText = highScore;
+    }
+  }
+
+  // Collision
+  if (
+    player.x < plant.x + plant.w &&
+    player.x + player.w > plant.x &&
+    player.y < plant.y + plant.h &&
+    player.y + player.h > plant.y
+  ) {
+    resetGame();
+  }
+
+  // Draw player (character)
+  ctx.fillStyle = "#ff7043";
+  ctx.fillRect(player.x, player.y, player.w, player.h); // body
+  ctx.fillStyle = "#ffccbc";
+  ctx.fillRect(player.x + 6, player.y - 12, 18, 12); // head
+
+  // Draw plant
+  ctx.fillStyle = "#2e7d32";
+  ctx.fillRect(plant.x, plant.y, plant.w, plant.h);
+  ctx.fillStyle = "#1b5e20";
+  ctx.fillRect(plant.x + 5, plant.y - 10, 5, 10);
+  ctx.fillRect(plant.x + 20, plant.y - 10, 5, 10);
+
+  requestAnimationFrame(gameLoop);
 }
 
-startGame();
-update();
+resetGame();
+gameLoop();
 </script>
 
 </body>
 </html>
-
