@@ -2,12 +2,12 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Infinite Runner</title>
+<title>Sprite Runner</title>
 <style>
 body {
   margin:0;
-  background: #87ceeb;
-  font-family: Arial, sans-serif;
+  background:#cceeff;
+  font-family:Arial;
   text-align:center;
 }
 #ui {
@@ -28,42 +28,45 @@ button {
 canvas {
   display:block;
   margin:auto;
-  background: linear-gradient(#c8e6c9,#ffffff);
   border-radius:12px;
+  background: linear-gradient(#81c784,#ffffff);
 }
 </style>
 </head>
 <body>
 
 <div id="ui">
-  <div>
-    Score: <span id="score">0</span><br>
-    High: <span id="high">0</span>
-  </div>
+  <div>Score: <span id="score">0</span> High: <span id="high">0</span></div>
   <div>
     <button onclick="pauseGame()">⏸ Pause</button>
     <button onclick="resetGame()">🔄 Reset</button>
   </div>
 </div>
 
-<canvas id="game" width="360" height="520"></canvas>
+<canvas id="game" width="400" height="200"></canvas>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-// Game variables
 let player, obstacles, speed, score, paused, gameOver;
 let highScore = localStorage.getItem("highScore") || 0;
 document.getElementById("high").innerText = highScore;
 
-const jumpSound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-quick-jump-arcade-game-239.mp3");
-const gameOverSound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-player-losing-or-failing-2042.mp3");
+// Sprites
+const playerImg = new Image();
+playerImg.src = "https://i.imgur.com/3d1qf0B.png"; // Example dino sprite
 
-// Initialize game
-function start() {
-  player = { x: 60, y: 420, vy: 0 };
-  obstacles = [{ x: 400 }];
+const obstacleImg = new Image();
+obstacleImg.src = "https://i.imgur.com/2sB6Z4s.png"; // Example cactus
+
+// Sounds
+const jumpSound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-quick-jump-arcade-game-239.mp3");
+const crashSound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-player-losing-or-failing-2042.mp3");
+
+function start(){
+  player = {x:50, y:160, vy:0, w:40, h:40};
+  obstacles = [{x:400, w:30, h:40}];
   speed = 4;
   score = 0;
   paused = false;
@@ -71,54 +74,41 @@ function start() {
   document.getElementById("score").innerText = score;
 }
 
-// Pause & Reset
-function pauseGame() { paused = !paused; }
-function resetGame() { start(); }
+function pauseGame(){ paused = !paused; }
+function resetGame(){ start(); }
 
-// Jump
-function jump() {
-  if(!paused && !gameOver && player.y>=420){
-    player.vy=-15;
+function jump(){
+  if(!paused && !gameOver && player.y>=160){
+    player.vy=-12;
     jumpSound.play();
   }
 }
 
-// Controls
 document.addEventListener("keydown", e=>{if(e.code==="Space") jump();});
 document.addEventListener("click", jump);
 document.addEventListener("touchstart", jump);
 
-// Game loop
 function update(){
   if(!paused){
     ctx.clearRect(0,0,canvas.width,canvas.height);
 
     // Ground
-    ctx.fillStyle="#5d4037";
-    ctx.fillRect(0,460,canvas.width,8);
+    ctx.fillStyle="#555";
+    ctx.fillRect(0,200-20,canvas.width,5);
 
-    // Player (body)
-    ctx.fillStyle="#ff7043";
-    ctx.fillRect(player.x,player.y,24,32);
-    // Player head
-    ctx.fillStyle="#ffccbc";
-    ctx.beginPath();
-    ctx.arc(player.x+12,player.y-6,8,0,Math.PI*2);
-    ctx.fill();
-
-    // Physics
-    player.vy+=1;
+    // Player sprite
+    player.vy+=0.7;
     player.y+=player.vy;
-    if(player.y>420){player.y=420;player.vy=0;}
+    if(player.y>160){player.y=160; player.vy=0;}
+    ctx.drawImage(playerImg,player.x,player.y,player.w,player.h);
 
     // Obstacles
     obstacles.forEach(o=>{
-      o.x-=speed;
-      ctx.fillStyle="#2e7d32";
-      ctx.fillRect(o.x,440,20,40);
+      o.x -= speed;
+      ctx.drawImage(obstacleImg,o.x,200-20-o.h,o.w,o.h);
 
-      if(o.x<-20){
-        o.x=canvas.width + Math.random()*200;
+      if(o.x<-o.w){
+        o.x = canvas.width + Math.random()*200;
         score++;
         speed+=0.2;
         document.getElementById("score").innerText=score;
@@ -130,29 +120,28 @@ function update(){
       }
 
       // Collision
-      if(player.x<o.x+20 && player.x+24>o.x && player.y+32>440){
+      if(player.x < o.x+o.w && player.x+player.w>o.x && player.y+player.h>200-20-o.h){
         gameOver=true;
-        gameOverSound.play();
         paused=true;
+        crashSound.play();
       }
     });
 
-    // Game Over text
+    // Game Over
     if(gameOver){
-      ctx.fillStyle="rgba(0,0,0,0.6)";
+      ctx.fillStyle="rgba(0,0,0,0.5)";
       ctx.fillRect(0,0,canvas.width,canvas.height);
       ctx.fillStyle="white";
-      ctx.font="30px Arial";
-      ctx.fillText("GAME OVER",80,240);
-      ctx.font="16px Arial";
-      ctx.fillText("Press Reset",120,270);
+      ctx.font="20px Arial";
+      ctx.fillText("GAME OVER",canvas.width/2-60,canvas.height/2-10);
+      ctx.font="14px Arial";
+      ctx.fillText("Press Reset",canvas.width/2-45,canvas.height/2+15);
     }
   }
 
   requestAnimationFrame(update);
 }
 
-// Start
 start();
 update();
 </script>
