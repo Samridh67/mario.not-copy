@@ -7,40 +7,78 @@
   <style>
     body {
       margin: 0;
-      background: #87ceeb;
-      text-align: center;
-      font-family: Arial;
+      background: linear-gradient(#87ceeb, #e0f7fa);
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
+
     canvas {
-      background: #cceeff;
-      display: block;
-      margin: auto;
+      background: linear-gradient(#c8e6c9, #ffffff);
+      border-radius: 12px;
+      margin-top: 10px;
+    }
+
+    .top-bar {
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+    }
+
+    button {
+      padding: 8px 14px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      background: #1976d2;
+      color: white;
     }
   </style>
 </head>
 
 <body>
 
-<canvas id="game" width="360" height="500"></canvas>
+<div class="top-bar">
+  <div>
+    Score: <span id="score">0</span><br>
+    High: <span id="highScore">0</span>
+  </div>
+  <button onclick="togglePause()">⏸ Pause</button>
+</div>
+
+<canvas id="game" width="360" height="520"></canvas>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
 let player, obstacle, score, speed, gravity;
+let paused = false;
+
+let highScore = localStorage.getItem("highScore") || 0;
+document.getElementById("highScore").innerText = highScore;
 
 function startGame() {
-  player = { x: 50, y: 400, w: 30, h: 30, vy: 0 };
-  obstacle = { x: 360, y: 420, w: 30, h: 30 };
+  player = { x: 50, y: 430, w: 32, h: 32, vy: 0 };
+  obstacle = { x: 360, y: 445, w: 32, h: 32 };
   score = 0;
   speed = 4;
-  gravity = 0.8;
+  gravity = 0.9;
+  document.getElementById("score").innerText = score;
 }
 
 function jump() {
-  if (player.y >= 400) {
-    player.vy = -14;
+  if (!paused && player.y >= 430) {
+    player.vy = -15;
   }
+}
+
+function togglePause() {
+  paused = !paused;
 }
 
 document.addEventListener("keydown", e => {
@@ -50,50 +88,58 @@ document.addEventListener("touchstart", jump);
 document.addEventListener("click", jump);
 
 function update() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (!paused) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Player
-  player.vy += gravity;
-  player.y += player.vy;
-  if (player.y > 400) {
-    player.y = 400;
-    player.vy = 0;
+    // Player physics
+    player.vy += gravity;
+    player.y += player.vy;
+    if (player.y > 430) {
+      player.y = 430;
+      player.vy = 0;
+    }
+
+    // Obstacle
+    obstacle.x -= speed;
+    if (obstacle.x < -obstacle.w) {
+      obstacle.x = canvas.width + Math.random() * 200;
+      score++;
+      speed += 0.15;
+      document.getElementById("score").innerText = score;
+
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem("highScore", highScore);
+        document.getElementById("highScore").innerText = highScore;
+      }
+    }
+
+    // Collision
+    if (
+      player.x < obstacle.x + obstacle.w &&
+      player.x + player.w > obstacle.x &&
+      player.y < obstacle.y + obstacle.h &&
+      player.y + player.h > obstacle.y
+    ) {
+      startGame();
+    }
+
+    // Player (rounded character)
+    ctx.fillStyle = "#ff5252";
+    ctx.beginPath();
+    ctx.roundRect(player.x, player.y, player.w, player.h, 8);
+    ctx.fill();
+
+    // Obstacle
+    ctx.fillStyle = "#2e7d32";
+    ctx.beginPath();
+    ctx.roundRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h, 6);
+    ctx.fill();
+
+    // Ground
+    ctx.fillStyle = "#5d4037";
+    ctx.fillRect(0, 462, canvas.width, 6);
   }
-
-  // Obstacle
-  obstacle.x -= speed;
-  if (obstacle.x < -obstacle.w) {
-    obstacle.x = canvas.width + Math.random() * 200;
-    score++;
-    speed += 0.2;
-  }
-
-  // Collision
-  if (
-    player.x < obstacle.x + obstacle.w &&
-    player.x + player.w > obstacle.x &&
-    player.y < obstacle.y + obstacle.h &&
-    player.y + player.h > obstacle.y
-  ) {
-    startGame(); // restart instantly
-  }
-
-  // Draw player
-  ctx.fillStyle = "red";
-  ctx.fillRect(player.x, player.y, player.w, player.h);
-
-  // Draw obstacle
-  ctx.fillStyle = "green";
-  ctx.fillRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h);
-
-  // Ground
-  ctx.fillStyle = "black";
-  ctx.fillRect(0, 450, canvas.width, 5);
-
-  // Score
-  ctx.fillStyle = "black";
-  ctx.font = "18px Arial";
-  ctx.fillText("Score: " + score, 10, 25);
 
   requestAnimationFrame(update);
 }
@@ -104,3 +150,4 @@ update();
 
 </body>
 </html>
+
