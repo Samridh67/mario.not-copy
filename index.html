@@ -1,161 +1,105 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Mini Mario Game</title>
+  <title>Infinite Runner</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
     body {
       margin: 0;
-      background: skyblue;
+      background: #87ceeb;
       text-align: center;
       font-family: Arial;
     }
-
     canvas {
-      background: #87ceeb;
+      background: #cceeff;
       display: block;
       margin: auto;
-      border: 2px solid black;
-    }
-
-    h1 {
-      margin: 10px;
     }
   </style>
 </head>
 
 <body>
 
-<h1>🍄 Mini Mario Game</h1>
-<p>⬅️ ➡️ Move | ⬆️ / Space Jump</p>
-
-<canvas id="game" width="800" height="400"></canvas>
+<canvas id="game" width="360" height="500"></canvas>
 
 <script>
-  const canvas = document.getElementById("game");
-  const ctx = canvas.getContext("2d");
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
-  // PLAYER
-  const player = {
-    x: 50,
-    y: 300,
-    width: 40,
-    height: 40,
-    vx: 0,
-    vy: 0,
-    speed: 4,
-    jumping: false
-  };
+let player, obstacle, score, speed, gravity;
 
-  const gravity = 0.6;
-  const keys = {};
-  let score = 0;
+function startGame() {
+  player = { x: 50, y: 400, w: 30, h: 30, vy: 0 };
+  obstacle = { x: 360, y: 420, w: 30, h: 30 };
+  score = 0;
+  speed = 4;
+  gravity = 0.8;
+}
 
-  // PLATFORMS
-  const platforms = [
-    { x: 0, y: 360, width: 800, height: 40 },
-    { x: 200, y: 280, width: 120, height: 20 },
-    { x: 400, y: 220, width: 120, height: 20 },
-    { x: 600, y: 160, width: 120, height: 20 }
-  ];
+function jump() {
+  if (player.y >= 400) {
+    player.vy = -14;
+  }
+}
 
-  // COINS
-  const coins = [
-    { x: 230, y: 250, taken: false },
-    { x: 430, y: 190, taken: false },
-    { x: 630, y: 130, taken: false }
-  ];
+document.addEventListener("keydown", e => {
+  if (e.code === "Space") jump();
+});
+document.addEventListener("touchstart", jump);
+document.addEventListener("click", jump);
 
-  // CONTROLS
-  document.addEventListener("keydown", e => keys[e.code] = true);
-  document.addEventListener("keyup", e => keys[e.code] = false);
+function update() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  function update() {
-    // MOVE
-    if (keys["ArrowRight"]) player.vx = player.speed;
-    else if (keys["ArrowLeft"]) player.vx = -player.speed;
-    else player.vx = 0;
-
-    // JUMP
-    if ((keys["ArrowUp"] || keys["Space"]) && !player.jumping) {
-      player.vy = -12;
-      player.jumping = true;
-    }
-
-    // GRAVITY
-    player.vy += gravity;
-    player.x += player.vx;
-    player.y += player.vy;
-
-    // COLLISION WITH PLATFORMS
-    platforms.forEach(p => {
-      if (
-        player.x < p.x + p.width &&
-        player.x + player.width > p.x &&
-        player.y + player.height < p.y + 20 &&
-        player.y + player.height + player.vy >= p.y
-      ) {
-        player.y = p.y - player.height;
-        player.vy = 0;
-        player.jumping = false;
-      }
-    });
-
-    // COINS
-    coins.forEach(c => {
-      if (!c.taken &&
-          player.x < c.x + 20 &&
-          player.x + player.width > c.x &&
-          player.y < c.y + 20 &&
-          player.y + player.height > c.y) {
-        c.taken = true;
-        score++;
-      }
-    });
-
-    // FALL = GAME OVER
-    if (player.y > canvas.height) {
-      alert("Game Over! Score: " + score);
-      location.reload();
-    }
+  // Player
+  player.vy += gravity;
+  player.y += player.vy;
+  if (player.y > 400) {
+    player.y = 400;
+    player.vy = 0;
   }
 
-  function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // PLAYER
-    ctx.fillStyle = "red";
-    ctx.fillRect(player.x, player.y, player.width, player.height);
-
-    // PLATFORMS
-    ctx.fillStyle = "green";
-    platforms.forEach(p =>
-      ctx.fillRect(p.x, p.y, p.width, p.height)
-    );
-
-    // COINS
-    ctx.fillStyle = "gold";
-    coins.forEach(c => {
-      if (!c.taken)
-        ctx.beginPath(),
-        ctx.arc(c.x + 10, c.y + 10, 10, 0, Math.PI * 2),
-        ctx.fill();
-    });
-
-    // SCORE
-    ctx.fillStyle = "black";
-    ctx.font = "20px Arial";
-    ctx.fillText("Score: " + score, 10, 25);
+  // Obstacle
+  obstacle.x -= speed;
+  if (obstacle.x < -obstacle.w) {
+    obstacle.x = canvas.width + Math.random() * 200;
+    score++;
+    speed += 0.2;
   }
 
-  function gameLoop() {
-    update();
-    draw();
-    requestAnimationFrame(gameLoop);
+  // Collision
+  if (
+    player.x < obstacle.x + obstacle.w &&
+    player.x + player.w > obstacle.x &&
+    player.y < obstacle.y + obstacle.h &&
+    player.y + player.h > obstacle.y
+  ) {
+    startGame(); // restart instantly
   }
 
-  gameLoop();
+  // Draw player
+  ctx.fillStyle = "red";
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+
+  // Draw obstacle
+  ctx.fillStyle = "green";
+  ctx.fillRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h);
+
+  // Ground
+  ctx.fillStyle = "black";
+  ctx.fillRect(0, 450, canvas.width, 5);
+
+  // Score
+  ctx.fillStyle = "black";
+  ctx.font = "18px Arial";
+  ctx.fillText("Score: " + score, 10, 25);
+
+  requestAnimationFrame(update);
+}
+
+startGame();
+update();
 </script>
 
 </body>
