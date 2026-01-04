@@ -1,187 +1,180 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Runner Game</title>
+<title>JumpQuest</title>
+
+<!-- PWA -->
+<link rel="manifest" href="data:application/json,{
+  &quot;name&quot;:&quot;JumpQuest&quot;,
+  &quot;short_name&quot;:&quot;JumpQuest&quot;,
+  &quot;start_url&quot;:&quot;.&quot;,
+  &quot;display&quot;:&quot;standalone&quot;,
+  &quot;background_color&quot;:&quot;#87ceeb&quot;,
+  &quot;theme_color&quot;:&quot;#87ceeb&quot;
+}">
+
 <style>
 body {
   margin: 0;
-  background: #f2f2f2;
-  font-family: Arial;
-  text-align: center;
+  background: #87ceeb;
+  font-family: Arial, sans-serif;
+  overflow: hidden;
 }
-#ui {
-  max-width: 420px;
-  margin: auto;
-  display: flex;
-  justify-content: space-between;
-  padding: 10px;
-}
-button {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 6px;
-  background: #1976d2;
-  color: white;
-  font-size: 14px;
-}
+
 canvas {
-  background: #fff;
   display: block;
   margin: auto;
-  border-radius: 10px;
+  background: linear-gradient(#87ceeb, #e0f7fa);
+}
+
+#controls {
+  position: fixed;
+  bottom: 10px;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+}
+
+button {
+  padding: 15px 20px;
+  font-size: 18px;
+  border: none;
+  border-radius: 50%;
+  background: #ff7043;
+  color: white;
 }
 </style>
 </head>
 <body>
 
-<div id="ui">
-  <div>Score: <span id="score">0</span> | High: <span id="high">0</span></div>
-  <div>
-    <button onclick="pauseGame()">Pause</button>
-    <button onclick="resetGame()">Reset</button>
-  </div>
-</div>
+<canvas id="game" width="400" height="240"></canvas>
 
-<canvas id="game" width="400" height="220"></canvas>
+<div id="controls">
+  <button ontouchstart="left=true" ontouchend="left=false">◀</button>
+  <button ontouchstart="jump()">▲</button>
+  <button ontouchstart="right=true" ontouchend="right=false">▶</button>
+</div>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-let ground = 180;
-let player, obstacle, score, speed;
-let paused = false, gameOver = false;
+let left=false, right=false;
+let gravity = 0.6;
 
-let highScore = localStorage.getItem("highScore") || 0;
-document.getElementById("high").textContent = highScore;
+const player = {
+  x: 50, y: 160, w: 20, h: 30,
+  vy: 0, onGround: false
+};
 
-// sounds (play ONLY on user action)
-const jumpSound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-game-jump-coin-306.mp3");
-const hitSound  = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-arcade-retro-game-over-213.mp3");
+let cameraX = 0;
+let score = 0;
 
-function startGame() {
-  player = { x: 60, y: ground, vy: 0, r: 12 };
-  obstacle = { x: 420, w: 18, h: 40 };
-  score = 0;
-  speed = 4;
-  paused = false;
-  gameOver = false;
-  document.getElementById("score").textContent = score;
-}
+const platforms = [
+  {x:0,y:200,w:800,h:20},
+  {x:150,y:160,w:60,h:10},
+  {x:260,y:130,w:60,h:10},
+  {x:380,y:150,w:60,h:10}
+];
 
-function pauseGame() {
-  paused = !paused;
-}
+const coins = [
+  {x:170,y:130,collected:false},
+  {x:290,y:100,collected:false},
+  {x:410,y:120,collected:false}
+];
 
-function resetGame() {
-  startGame();
-}
-
-function jump() {
-  if (!paused && !gameOver && player.y === ground) {
-    player.vy = -11;
-    jumpSound.currentTime = 0;
-    jumpSound.play();
+function jump(){
+  if(player.onGround){
+    player.vy = -10;
+    player.onGround = false;
   }
 }
 
-document.addEventListener("keydown", e => {
-  if (e.code === "Space") jump();
+document.addEventListener("keydown", e=>{
+  if(e.key==="ArrowLeft") left=true;
+  if(e.key==="ArrowRight") right=true;
+  if(e.key===" " || e.key==="ArrowUp") jump();
 });
-document.addEventListener("touchstart", jump);
-document.addEventListener("click", jump);
+document.addEventListener("keyup", e=>{
+  if(e.key==="ArrowLeft") left=false;
+  if(e.key==="ArrowRight") right=false;
+});
 
-function drawHuman(p) {
-  ctx.strokeStyle = "#000";
-  ctx.lineWidth = 3;
+function update(){
+  // movement
+  if(left) player.x -= 2;
+  if(right) player.x += 2;
 
-  // head
-  ctx.beginPath();
-  ctx.arc(p.x, p.y - 22, 8, 0, Math.PI * 2);
-  ctx.stroke();
+  // gravity
+  player.vy += gravity;
+  player.y += player.vy;
+  player.onGround = false;
 
-  // body
-  ctx.beginPath();
-  ctx.moveTo(p.x, p.y - 14);
-  ctx.lineTo(p.x, p.y);
-  ctx.stroke();
-
-  // legs
-  ctx.beginPath();
-  ctx.moveTo(p.x, p.y);
-  ctx.lineTo(p.x - 8, p.y + 12);
-  ctx.moveTo(p.x, p.y);
-  ctx.lineTo(p.x + 8, p.y + 12);
-  ctx.stroke();
-}
-
-function update() {
-  if (!paused) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // ground
-    ctx.fillStyle = "#555";
-    ctx.fillRect(0, ground + 15, canvas.width, 4);
-
-    // player physics
-    player.vy += 0.6;
-    player.y += player.vy;
-    if (player.y > ground) {
-      player.y = ground;
+  platforms.forEach(p=>{
+    if(player.x+player.w>p.x && player.x<p.x+p.w &&
+       player.y+player.h>p.y && player.y+player.h< p.y+p.h){
+      player.y = p.y - player.h;
       player.vy = 0;
+      player.onGround = true;
     }
+  });
 
-    drawHuman(player);
+  cameraX = player.x - 80;
 
-    // obstacle
-    obstacle.x -= speed;
-    ctx.fillStyle = "#2e7d32";
-    ctx.fillRect(obstacle.x, ground + 15 - obstacle.h, obstacle.w, obstacle.h);
-
-    // reset obstacle
-    if (obstacle.x < -obstacle.w) {
-      obstacle.x = canvas.width + Math.random() * 200;
+  // coins
+  coins.forEach(c=>{
+    if(!c.collected &&
+       player.x+player.w>c.x && player.x<c.x+10 &&
+       player.y+player.h>c.y && player.y<c.y+10){
+      c.collected = true;
       score++;
-      speed += 0.2;
-      document.getElementById("score").textContent = score;
-
-      if (score > highScore) {
-        highScore = score;
-        localStorage.setItem("highScore", highScore);
-        document.getElementById("high").textContent = highScore;
-      }
     }
-
-    // collision (FIXED)
-    if (
-      player.x + 8 > obstacle.x &&
-      player.x - 8 < obstacle.x + obstacle.w &&
-      player.y + 12 > ground + 15 - obstacle.h
-    ) {
-      gameOver = true;
-      paused = true;
-      hitSound.currentTime = 0;
-      hitSound.play();
-    }
-
-    // game over screen
-    if (gameOver) {
-      ctx.fillStyle = "rgba(0,0,0,0.6)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#fff";
-      ctx.font = "20px Arial";
-      ctx.fillText("GAME OVER", 125, 100);
-      ctx.font = "14px Arial";
-      ctx.fillText("Tap Reset", 155, 125);
-    }
-  }
-  requestAnimationFrame(update);
+  });
 }
 
-startGame();
-update();
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.save();
+  ctx.translate(-cameraX,0);
+
+  // platforms
+  ctx.fillStyle="#5d4037";
+  platforms.forEach(p=>ctx.fillRect(p.x,p.y,p.w,p.h));
+
+  // coins
+  ctx.fillStyle="gold";
+  coins.forEach(c=>{
+    if(!c.collected){
+      ctx.beginPath();
+      ctx.arc(c.x+5,c.y+5,5,0,Math.PI*2);
+      ctx.fill();
+    }
+  });
+
+  // player (original character)
+  ctx.fillStyle="#1e88e5";
+  ctx.fillRect(player.x,player.y,player.w,player.h);
+  ctx.fillStyle="#000";
+  ctx.fillRect(player.x+5,player.y+5,4,4);
+
+  ctx.restore();
+
+  // UI
+  ctx.fillStyle="#000";
+  ctx.fillText("Score: "+score,10,15);
+}
+
+function loop(){
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop();
 </script>
 
 </body>
 </html>
+
