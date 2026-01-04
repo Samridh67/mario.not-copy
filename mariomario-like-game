@@ -1,0 +1,8 @@
+mario-like-game/
+│
+├── index.html
+├── game.js
+└── assets/
+    ├── player.png
+    ├── platform.png
+    └── coin.png
