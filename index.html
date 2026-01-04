@@ -1,192 +1,130 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Infinite Jump Run</title>
-<style>
-body {
-  margin: 0;
-  overflow: hidden;
-  background: #87ceeb;
-  font-family: Arial;
-}
-canvas {
-  display: block;
-  margin: auto;
-  background: linear-gradient(#87ceeb, #dff6ff);
-}
-#mobileControls {
-  position: fixed;
-  bottom: 10px;
-  width: 100%;
-  display: flex;
-  justify-content: space-around;
-}
-button {
-  padding: 18px;
-  font-size: 18px;
-  border-radius: 50%;
-  border: none;
-  background: #ff7043;
-  color: white;
-}
-</style>
+  <meta charset="UTF-8">
+  <title>Jump Hero</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Phaser 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      background: #87ceeb;
+    }
+    canvas {
+      display: block;
+      margin: auto;
+    }
+  </style>
 </head>
 <body>
 
-<canvas id="game" width="420" height="240"></canvas>
-
-<div id="mobileControls">
-  <button ontouchstart="left=true" ontouchend="left=false">◀</button>
-  <button ontouchstart="jump()">▲</button>
-  <button ontouchstart="right=true" ontouchend="right=false">▶</button>
-</div>
-
-<script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-
-let left=false, right=false;
-let gravity = 0.6;
-let scrollSpeed = 1.5;
-
-const player = {
-  x: 80, y: 160, w: 22, h: 30,
-  vy: 0, onGround: false
-};
-
-let cameraX = 0;
-let score = 0;
-
-// infinite world arrays
-let platforms = [];
-let coins = [];
-let enemies = [];
-
-function spawnPlatform(x) {
-  let y = 150 + Math.random()*40;
-  platforms.push({x, y, w: 60, h: 12});
-  if(Math.random() < 0.6)
-    coins.push({x:x+25, y:y-12});
-  if(Math.random() < 0.3)
-    enemies.push({x:x+30, y:y-20, dir:1});
-}
-
-// initial platforms
-for(let i=0;i<10;i++) spawnPlatform(i*80);
-
-function jump(){
-  if(player.onGround){
-    player.vy = -11;
-    player.onGround = false;
-  }
-}
-
-document.addEventListener("keydown",e=>{
-  if(e.key==="ArrowLeft") left=true;
-  if(e.key==="ArrowRight") right=true;
-  if(e.key===" "||e.key==="ArrowUp") jump();
-});
-document.addEventListener("keyup",e=>{
-  if(e.key==="ArrowLeft") left=false;
-  if(e.key==="ArrowRight") right=false;
-});
-
-function update(){
-  // auto-scroll (infinite feel)
-  cameraX += scrollSpeed;
-
-  if(left) player.x -= 2;
-  if(right) player.x += 2;
-
-  player.vy += gravity;
-  player.y += player.vy;
-  player.onGround = false;
-
-  platforms.forEach(p=>{
-    if(player.x+player.w>p.x && player.x<p.x+p.w &&
-       player.y+player.h>p.y && player.y+player.h<p.y+p.h){
-      player.y = p.y - player.h;
-      player.vy = 0;
-      player.onGround = true;
-    }
-  });
-
-  // coins
-  coins = coins.filter(c=>{
-    if(player.x+player.w>c.x && player.x<c.x+10 &&
-       player.y+player.h>c.y && player.y<c.y+10){
-      score += 10;
-      return false;
-    }
-    return true;
-  });
-
-  // enemies
-  enemies.forEach(e=>{
-    e.x += e.dir*0.5;
-    if(player.x+player.w>e.x && player.x<e.x+20 &&
-       player.y+player.h>e.y && player.y<e.y+20){
-      alert("Game Over\nScore: "+score);
-      location.reload();
-    }
-  });
-
-  // spawn endlessly
-  if(platforms[platforms.length-1].x - cameraX < 420){
-    spawnPlatform(platforms[platforms.length-1].x + 80);
-  }
-
-  // cleanup old
-  platforms = platforms.filter(p=>p.x > cameraX-100);
-  coins = coins.filter(c=>c.x > cameraX-100);
-  enemies = enemies.filter(e=>e.x > cameraX-100);
-
-  score++;
-}
-
-function draw(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.save();
-  ctx.translate(-cameraX,0);
-
-  // platforms
-  ctx.fillStyle="#5d4037";
-  platforms.forEach(p=>ctx.fillRect(p.x,p.y,p.w,p.h));
-
-  // coins
-  ctx.fillStyle="gold";
-  coins.forEach(c=>{
-    ctx.beginPath();
-    ctx.arc(c.x+5,c.y+5,5,0,Math.PI*2);
-    ctx.fill();
-  });
-
-  // enemies
-  ctx.fillStyle="crimson";
-  enemies.forEach(e=>ctx.fillRect(e.x,e.y,20,20));
-
-  // player (original, Mario-like proportions)
-  ctx.fillStyle="#1e88e5";
-  ctx.fillRect(player.x,player.y,player.w,player.h);
-  ctx.fillStyle="#000";
-  ctx.fillRect(player.x+5,player.y+6,4,4);
-
-  ctx.restore();
-
-  ctx.fillStyle="#000";
-  ctx.fillText("Score: "+score,10,15);
-}
-
-function loop(){
-  update();
-  draw();
-  requestAnimationFrame(loop);
-}
-
-loop();
-</script>
+<script src="game.js"></script>
 
 </body>
 </html>
+
+
+const config = {
+  type: Phaser.AUTO,
+  width: 400,
+  height: 240,
+  physics: {
+    default: 'arcade',
+    arcade: {
+      gravity: { y: 900 },
+      debug: false
+    }
+  },
+  scene: {
+    preload,
+    create,
+    update
+  }
+};
+
+const game = new Phaser.Game(config);
+
+let player;
+let platforms;
+let coins;
+let cursors;
+let cameraSpeed = 120;
+let lastPlatformX = 0;
+let score = 0;
+let scoreText;
+
+function preload() {
+  this.load.image('player', 'https://i.imgur.com/QZ6X9bK.png');
+  this.load.image('platform', 'https://i.imgur.com/3WbYy5F.png');
+  this.load.image('coin', 'https://i.imgur.com/Fz3sC1J.png');
+}
+
+function create() {
+  platforms = this.physics.add.staticGroup();
+  coins = this.physics.add.group();
+
+  // initial ground
+  for (let i = 0; i < 6; i++) {
+    spawnPlatform(this, i * 80, 210);
+  }
+
+  player = this.physics.add.sprite(80, 100, 'player');
+  player.setCollideWorldBounds(false);
+  player.body.setSize(20, 28);
+  player.setBounce(0.05);
+
+  this.physics.add.collider(player, platforms);
+  this.physics.add.overlap(player, coins, collectCoin, null, this);
+
+  cursors = this.input.keyboard.createCursorKeys();
+
+  scoreText = this.add.text(10, 10, 'Score: 0', {
+    fontSize: '14px',
+    fill: '#000'
+  }).setScrollFactor(0);
+
+  this.cameras.main.startFollow(player);
+  this.cameras.main.setDeadzone(80, 0);
+}
+
+function update(time, delta) {
+  // auto-run (Mario feel)
+  player.setVelocityX(cameraSpeed);
+
+  // jump
+  if ((cursors.space.isDown || cursors.up.isDown) && player.body.blocked.down) {
+    player.setVelocityY(-420);
+  }
+
+  // infinite generation
+  if (player.x > lastPlatformX - 200) {
+    spawnPlatform(this, lastPlatformX + Phaser.Math.Between(60, 100), Phaser.Math.Between(130, 200));
+  }
+
+  // fall = game over
+  if (player.y > 300) {
+    this.scene.restart();
+    score = 0;
+  }
+}
+
+function spawnPlatform(scene, x, y) {
+  const platform = platforms.create(x, y, 'platform');
+  platform.refreshBody();
+  lastPlatformX = x;
+
+  if (Math.random() < 0.6) {
+    const coin = coins.create(x, y - 20, 'coin');
+    coin.body.allowGravity = false;
+  }
+}
+
+function collectCoin(player, coin) {
+  coin.destroy();
+  score += 10;
+  scoreText.setText('Score: ' + score);
+}
 
